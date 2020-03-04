@@ -1,0 +1,54 @@
+---
+
+- name: McXtrace image builder
+
+  vars:
+    ansible_bender:
+      base_image: centos7
+
+      target_image:
+        name: mcxtrace_image
+        working_dir: /tmp
+
+    mcxtrace_name: mcxtrace
+    mcxtrace_version: 1.5
+    mcxtrace: {{ mcxtrace_name }}-{{ mcxtrace_version }}
+    mcxtrace_package: {{ mcxtrace }}.tar.gz
+
+    source_root: /tmp
+    source_dir: {{ source_root }}/{{ mxctrace }}
+    build_dir: {{ source_dir }}/build
+
+  tasks:
+    - name: install prerequisites
+      yum:
+        - cmake
+        - gcc
+        - g++
+
+    # Get the code
+    - name: checkout github release of mcxtrace
+      get_url:
+        url: https://github.com/McStasMcXtrace/McCode/archive/{{ mcxtrace_package }}
+        dest: /tmp/{{ mcxtrace_package }}
+
+    - name: unpack mcxtrace
+      unarchive:
+        src: {{ source_root}}/{{ mcxtrace_package }}
+        dest: {{ source_dir }}
+
+    - name: generate make files via cmake
+      command:
+        cmd: /usr/bin/cmake -DCMAKE_BUILD_TYPE=Release ../
+        chdir: {{ build_dir }}
+        creates: {{ build_dir }}
+
+    # TODO, lookup system number of threads
+    - name: build mcxtrace - {{ mcxtrace_version }}
+      make:
+        chdir: {{ build_dir }}
+
+    - name: install mcxtrace - {{ mcxtrace_version }}
+      make:
+        chdir: {{ build_dir }}
+        target: install
