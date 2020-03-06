@@ -1,54 +1,65 @@
 ---
-
 - name: McXtrace image builder
-
+  hosts: all
   vars:
-    ansible_bender:
-      base_image: centos7
-
-      target_image:
-        name: mcxtrace_image
-        working_dir: /tmp
-
     mcxtrace_name: mcxtrace
     mcxtrace_version: 1.5
-    mcxtrace: {{ mcxtrace_name }}-{{ mcxtrace_version }}
-    mcxtrace_package: {{ mcxtrace }}.tar.gz
-
+    mcxtrace: "{{ mcxtrace_name }}-{{ mcxtrace_version }}"
+    mcxtrace_package: "{{ mcxtrace }}.tar.gz"
     source_root: /tmp
-    source_dir: {{ source_root }}/{{ mxctrace }}
-    build_dir: {{ source_dir }}/build
+    source_dir: "{{ source_root }}/{{ mcxtrace }}"
+    build_dir: "{{ source_dir }}/build"
 
+    ansible_bender:
+      base_image: docker.io/library/centos:7
+      target_image:
+        name: mcxtrace_image
+            
   tasks:
-    - name: install prerequisites
-      yum:
-        - cmake
+  - name: install prerequisites
+    yum:
+      state: present
+      name:
+        - epel-release
         - gcc
-        - g++
+        - cmake
+        - make
 
     # Get the code
-    - name: checkout github release of mcxtrace
-      get_url:
-        url: https://github.com/McStasMcXtrace/McCode/archive/{{ mcxtrace_package }}
-        dest: /tmp/{{ mcxtrace_package }}
+  - name: checkout github release of mcxtrace
+    get_url:
+      url: "https://github.com/McStasMcXtrace/McCode/archive/{{ mcxtrace_package }}"
+      dest: "{{ source_root }}/{{ mcxtrace_package }}"
 
-    - name: unpack mcxtrace
-      unarchive:
-        src: {{ source_root}}/{{ mcxtrace_package }}
-        dest: {{ source_dir }}
+  - name: create required unpack directory
+    file:
+      state: directory
+      path: "{{ source_dir }}"
 
-    - name: generate make files via cmake
-      command:
-        cmd: /usr/bin/cmake -DCMAKE_BUILD_TYPE=Release ../
-        chdir: {{ build_dir }}
-        creates: {{ build_dir }}
+  - name: unpack mcxtrace
+    unarchive:
+      src: "{{ source_root }}/{{ mcxtrace_package }}"
+      dest: "{{ source_dir }}"
+      remote_src: yes
+      extra_opts: [--strip-components=1]
+
+  - name: create required build directory
+    file:
+      state: directory
+      path: "{{ build_dir }}"
+
+  - name: generate make files via cmake
+    command:
+      cmd: /usr/bin/cmake -DCMAKE_BUILD_TYPE=Release {{ source_dir }}
+      chdir: "{{ build_dir }}"
+      creates: "{{ build_dir }}"
 
     # TODO, lookup system number of threads
-    - name: build mcxtrace - {{ mcxtrace_version }}
-      make:
-        chdir: {{ build_dir }}
+  # - name: "build mcxtrace - {{ mcxtrace_version }}"
+  #   make:
+  #     chdir: "{{ build_dir }}"
 
-    - name: install mcxtrace - {{ mcxtrace_version }}
-      make:
-        chdir: {{ build_dir }}
-        target: install
+  # - name: "install mcxtrace - {{ mcxtrace_version }}"
+  #   make:
+  #     chdir: "{{ build_dir }}"
+  #     target: install
