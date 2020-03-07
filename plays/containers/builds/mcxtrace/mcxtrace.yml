@@ -2,64 +2,159 @@
 - name: McXtrace image builder
   hosts: all
   vars:
+    mcstas_name: mcstas
     mcxtrace_name: mcxtrace
-    mcxtrace_version: 1.5
-    mcxtrace: "{{ mcxtrace_name }}-{{ mcxtrace_version }}"
-    mcxtrace_package: "{{ mcxtrace }}.tar.gz"
-    source_root: /tmp
-    source_dir: "{{ source_root }}/{{ mcxtrace }}"
-    build_dir: "{{ source_dir }}/build"
+    package_version: 1.5
+    package_name: "{{ mcxtrace_name }}-{{ package_version }}"
+    package_archive: "{{ package_name }}.tar.gz"
+    source_base: /tmp
+    package_path: "{{ source_base }}/{{ package_archive }}"
+    source_path: "{{ source_base }}/{{ package_name }}"
+
+    # Mcstas and Mcxtrace
+    mcstas_source_path: "{{ source_path }}/mcstas"
+    mcstas_build_path: "{{ mcstas_source_path }}/build"
+    mcxtrace_source_path: "{{ source_path }}/mcxtrace"
+    mcxtrace_build_path: "{{ mcxtrace_source_path }}/build"
+
+    # Mcrun and Mxrun
+    mcrun_name: mcrun
+    mxrun_name: mxrun
+    python_tools_path: "{{ source_path }}/tools/Python"
+    mcrun_source_path: "{{ python_tools_path }}/mcrun"
+    mcrun_build_path: "{{ mcrun_source_path }}/build/mcrun"
+    mxrun_source_path: "{{ python_tools_path }}/mcrun"
+    mxrun_build_path: "{{ mxrun_source_path }}/build/mxrun"
+
+    # Mccodelib (Mcrun and Mxrun dependency)
+    mccodelib_name: mccodelib
+    mccodelib_source_path: "{{ python_tools_path }}/mccodelib"
+    mccodelib_build_path: "{{ mccodelib_source_path }}/build"
 
     ansible_bender:
       base_image: docker.io/library/centos:7
       target_image:
-        name: mcxtrace_image
-            
+        name: "mcxtrace_image-{{ package_version }}"
+
   tasks:
   - name: install prerequisites
     yum:
       state: present
       name:
+        - vim
         - epel-release
         - gcc
         - cmake
         - make
+        - bison
+        - flex
+        - libnotify
+        - python3
 
     # Get the code
   - name: checkout github release of mcxtrace
     get_url:
-      url: "https://github.com/McStasMcXtrace/McCode/archive/{{ mcxtrace_package }}"
-      dest: "{{ source_root }}/{{ mcxtrace_package }}"
+      url: "https://github.com/McStasMcXtrace/McCode/archive/{{ package_archive }}"
+      dest: "{{ package_path }}"
 
   - name: create required unpack directory
     file:
       state: directory
-      path: "{{ source_dir }}"
+      path: "{{ source_path }}"
 
   - name: unpack mcxtrace
     unarchive:
-      src: "{{ source_root }}/{{ mcxtrace_package }}"
-      dest: "{{ source_dir }}"
+      src: "{{ package_path }}"
+      dest: "{{ source_path }}"
       remote_src: yes
       extra_opts: [--strip-components=1]
 
-  - name: create required build directory
+  # McStas
+  - name: "create required {{ mcstas_name }} build directory"
     file:
       state: directory
-      path: "{{ build_dir }}"
+      path: "{{ mcstas_build_path }}"
 
-  - name: generate make files via cmake
+  - name: "generate {{ mcstas_name }} make files via cmake"
     command:
-      cmd: /usr/bin/cmake -DCMAKE_BUILD_TYPE=Release {{ source_dir }}
-      chdir: "{{ build_dir }}"
-      creates: "{{ build_dir }}"
+      cmd: "/usr/bin/cmake -DCMAKE_BUILD_TYPE=Release {{ mcstas_source_path }}"
+      chdir: "{{ mcstas_build_path }}"
+
+  - name: "build mcstas - {{ mcxtrace_version }}"
+    make:
+      chdir: "{{ mcstas_build_path }}"
+      target: all
+
+  # McXtrace
+  - name: "create required {{ mcxtrace_name }} build directory"
+    file:
+      state: directory
+      path: "{{ mcxtrace_build_path }}"
+
+  - name: "generate {{ mcxtrace_name }} make files via cmake"
+    command:
+      cmd: "/usr/bin/cmake -DCMAKE_BUILD_TYPE=Release {{ mcxtrace_source_path }}"
+      chdir: "{{ mcxtrace_build_path }}"
 
     # TODO, lookup system number of threads
-  # - name: "build mcxtrace - {{ mcxtrace_version }}"
-  #   make:
-  #     chdir: "{{ build_dir }}"
+  - name: "build mcxtrace - {{ mcxtrace_version }}"
+    make:
+      chdir: "{{ mcxtrace_build_path }}"
+      target: all
 
-  # - name: "install mcxtrace - {{ mcxtrace_version }}"
-  #   make:
-  #     chdir: "{{ build_dir }}"
-  #     target: install
+  - name: "install mcxtrace - {{ mcxtrace_version }}"
+    make:
+      chdir: "{{ mcxtrace_build_path }}"
+      target: install
+
+  # Install mcrun python utils
+  - name: "create required directory for {{ mcrun_name }}"
+    file:
+      state: directory
+      path: "{{ mcrun_build_path }}"
+
+  - name: "generate {{ mcrun }} make files via cmake"
+    command:
+      cmd: "/usr/bin/cmake -DCMAKE_BUILD_TYPE=Release -Denable_{{ mcstas_name }} {{ mcrun_source_path }}"
+      chdir: "{{ mcrun_build_path }}"
+      creates: "{{ mcrun_build_path }}"
+
+  - name: "build - {{ mcrun_name }}"
+    make:
+      chdir: "{{ mcrun_build_path }}"
+      target: all
+  
+  - name: "install - {{ mcrun_name }}"
+    make:
+      chdir: "{{ mcrun_build_path }}"
+      target: install
+
+  # Install mxrun python utils
+
+  # Install mccodelib
+  - name: "create required directory for {{ mccodelib_name }}"
+    file:
+      state: directory
+      path: "{{ mccodelib_build_path }}"
+
+  - name: "generate {{ mccodelib_name }} make files via cmake"
+    command:
+      cmd: "/usr/bin/cmake -DCMAKE_BUILD_TYPE=Release {{ mccodelib_source_path }}"
+      chdir: "{{ mccodelib_build_path }}"
+      creates: "{{ mccodelib_build_path }}"
+
+  - name: "build - {{ mccodelib_name }}"
+    make:
+      chdir: "{{ mccodelib_build_path }}"
+      target: all
+  
+  - name: "install - {{ mccodelib_name }}"
+    make:
+      chdir: "{{ mccodelib_build_path }}"
+      target: install
+
+  # Install mcrun/mxrun python dependencies
+  - name: "python package dependencies for mxrun"
+    pip:
+      name:
+        - PyYaml
