@@ -22,14 +22,11 @@
     mxrun_name: mxrun
     python_tools_path: "{{ source_path }}/tools/Python"
     mcrun_source_path: "{{ python_tools_path }}/mcrun"
-    mcrun_build_path: "{{ mcrun_source_path }}/build/mcrun"
     mxrun_source_path: "{{ python_tools_path }}/mcrun"
-    mxrun_build_path: "{{ mxrun_source_path }}/build/mxrun"
 
     # Mccodelib (Mcrun and Mxrun dependency)
     mccodelib_name: mccodelib
     mccodelib_source_path: "{{ python_tools_path }}/mccodelib"
-    mccodelib_build_path: "{{ mccodelib_source_path }}/build"
 
     ansible_bender:
       base_image: docker.io/library/centos:7
@@ -85,6 +82,11 @@
       chdir: "{{ mcstas_build_path }}"
       target: all
 
+  - name: "install mcstas - {{ mcxtrace_version }}"
+    make:
+      chdir: "{{ mcstas_build_path }}"
+      target: all
+
   # McXtrace
   - name: "create required {{ mcxtrace_name }} build directory"
     file:
@@ -111,46 +113,63 @@
   - name: "create required directory for {{ mcrun_name }}"
     file:
       state: directory
-      path: "{{ mcrun_build_path }}"
+      path: "{{ mcrun_source_path }}"
 
   - name: "generate {{ mcrun }} make files via cmake"
     command:
-      cmd: "/usr/bin/cmake -DCMAKE_BUILD_TYPE=Release -Denable_{{ mcstas_name }} {{ mcrun_source_path }}"
-      chdir: "{{ mcrun_build_path }}"
-      creates: "{{ mcrun_build_path }}"
+      cmd: "/usr/bin/cmake -DCMAKE_BUILD_TYPE=Release -Denable_{{ mcstas_name }}=1 {{ mcrun_source_path }}"
+      chdir: "{{ mcrun_source_path }}"
 
   - name: "build - {{ mcrun_name }}"
     make:
-      chdir: "{{ mcrun_build_path }}"
+      chdir: "{{ mcrun_source_path }}"
       target: all
   
   - name: "install - {{ mcrun_name }}"
     make:
-      chdir: "{{ mcrun_build_path }}"
+      chdir: "{{ mcrun_source_path }}"
       target: install
 
   # Install mxrun python utils
+  - name: "create required directory for {{ mxrun_name }}"
+    file:
+      state: directory
+      path: "{{ mcrun_source_path }}"
+
+  - name: "generate {{ mxrun }} make files via cmake"
+    command:
+      cmd: "/usr/bin/cmake -DCMAKE_BUILD_TYPE=Release -Denable_{{ mcxtrace_name }}=1 {{ mcrun_source_path }}"
+      chdir: "{{ mcrun_source_path }}"
+
+  - name: "build - {{ mcrun_name }}"
+    make:
+      chdir: "{{ mcrun_source_path }}"
+      target: all
+  
+  - name: "install - {{ mcrun_name }}"
+    make:
+      chdir: "{{ mcrun_source_path }}"
+      target: install
 
   # Install mccodelib
   - name: "create required directory for {{ mccodelib_name }}"
     file:
       state: directory
-      path: "{{ mccodelib_build_path }}"
+      path: "{{ mccodelib_source_path }}"
 
   - name: "generate {{ mccodelib_name }} make files via cmake"
     command:
       cmd: "/usr/bin/cmake -DCMAKE_BUILD_TYPE=Release {{ mccodelib_source_path }}"
-      chdir: "{{ mccodelib_build_path }}"
-      creates: "{{ mccodelib_build_path }}"
+      chdir: "{{ mccodelib_source_path }}"
 
   - name: "build - {{ mccodelib_name }}"
     make:
-      chdir: "{{ mccodelib_build_path }}"
+      chdir: "{{ mccodelib_source_path }}"
       target: all
   
   - name: "install - {{ mccodelib_name }}"
     make:
-      chdir: "{{ mccodelib_build_path }}"
+      chdir: "{{ mccodelib_source_path }}"
       target: install
 
   # Install mcrun/mxrun python dependencies
