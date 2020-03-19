@@ -1,9 +1,9 @@
 
 mcxtrace_name: mcxtrace
 mcxtrace_version: 1.5
-mcxtrace: {{ mcxtrace_name }}-{{ mcxtrace_version }}
-mcxtrace_package: {{ mcxtrace }}.tar.gz
+mcxtrace: "{{ mcxtrace_name }}-{{ mcxtrace_version }}"
+mcxtrace_package: "{{ mcxtrace }}.tar.gz"
 
 source_root: /tmp
-source_dir: {{ source_root }}/{{ mxctrace }}
-build_dir: {{ source_dir }}/build
+source_dir: "{{ source_root }}/{{ mxctrace }}"
+build_dir: "{{ source_dir }}/build"
