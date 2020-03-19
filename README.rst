@@ -6,6 +6,7 @@ A set of playbooks for creating container images for the folliwing packages
 
 - mcstas/mcrun `Mcstas <https://github.com/McStasMcXtrace/McCode>`_
 - mcxtrace/mxrun `Mcxtrace <https://github.com/McStasMcXtrace/McCode>`_
+- mcstas/mccxtrace/mcrun/mxrun `McCode <https://github.com/McStasMcXtrace/McCode>`_
 
 The images are created with `ansible-bender <https://github.com/ansible-community/ansible-bender.git>`_,
 which utilizes `buildah <https://github.com/containers/buildah>`_ to ensure that the images
