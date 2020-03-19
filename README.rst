@@ -23,9 +23,9 @@ Afterwards it is simply a matter of cloning the source::
 Example build
 -------------
 
-To build the mcxtrace image::
+To build the general mccode image::
 
-    ansible-bender build plays/containers/builds/mcxtrace/mcxtrace.yml
+    ansible-bender build plays/containers/builds/mccode/mccode.yml
 
 By default the temporary build files are being written to the `/tmp` folder, this can be changed by defining the `TMPDIR` environment variable::
 
