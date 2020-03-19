@@ -18,7 +18,7 @@ Getting Started
 To begin with, ensure that you have `ansible-bender` properly installed so that it can be executed from the shell.
 Afterwards it is simply a matter of cloning the source::
 
-    git clone https://github.com/rasmunk/mcstas-builds
+    git clone https://github.com/rasmunk/mccode-builds
 
 -------------
 Example build
