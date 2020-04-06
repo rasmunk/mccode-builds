@@ -73,6 +73,7 @@
         - python-setuptools
         - python3
         - python3-setuptools
+        - gcc-gfortran
 
   # Get the code
   - name: checkout github releases
@@ -80,7 +81,7 @@
       url: "{{ item.url }}"
       dest: "{{ item.dest }}"
     with_items:
-      - { url: "https://github.com/McStasMcXtrace/McCode/archive/{{ package_archive }}", dest: "{{ package_path" }
+      - { url: "https://github.com/McStasMcXtrace/McCode/archive/{{ package_archive }}", dest: "{{ package_path }}" }
       - { url: "https://github.com/mctools/mcpl/archive/{{ mcpl_archive }}", dest: "{{ mcpl_path }}" }
       - { url: "https://github.com/mctools/ncrystal/archive/{{ ncrystal_archive }}", dest: "{{ ncrystal_path }}" }
 
@@ -89,9 +90,9 @@
       state: directory
       path: "{{ item }}"
     with_items:
-      - "{{ package_path }}"
-      - "{{ mcpl_path }}"
-      - "{{ ncrystal_path }}"
+      - "{{ source_path }}"
+      - "{{ mcpl_source_path }}"
+      - "{{ ncrystal_source_path }}"
 
   - name: unpack packages
     unarchive:
@@ -252,16 +253,27 @@
       state: directory
       path: "{{ item }}"
     with_items:
-      - "/usr/local/share/{{ mcstas_name }}/examples"
-      - "/usr/local/share/{{ mcxtrace_name }}/examples"
+      - "/usr/local/share/{{ mcstas_name }}"
+      - "/usr/local/share/{{ mcxtrace_name }}"
 
   - name: copy examples
     command: "cp -r {{ item.src }} {{ item.dst }}"
     with_items:
      - { src: "{{ mcstas_comps_path }}/examples",
-         dst: "/usr/local/share/{{ mcstas_name }}/examples" }
+         dst: "/usr/local/share/{{ mcstas_name }}/" }
      - { src: "{{ mcxtrace_comps_path }}/examples",
-         dst: "/usr/local/share/{{ mcxtrace_name }}/examples" }
+         dst: "/usr/local/share/{{ mcxtrace_name }}/" }
+
+
+  - name: trgger the generation of mccode config file
+    script: mcrun --write-user-config
+
+  - name: set the mccode CC environment variable
+    lineinfile:
+       path: /etc/profile.d/mccode_cc_env.sh
+       line: 'export MCSTAS_CC_OVERRIDE=gcc'
+       insertbefore: BOF
+       create: yes
 
   - name: remove source files
     file:
