@@ -14,9 +14,11 @@
 
     # Mcstas and Mcxtrace
     mcstas_source_path: "{{ source_path }}/mcstas"
+    mcstas_comps_path: "{{ source_path }}/mcstas-comps"
     mcstas_build_path: "{{ mcstas_source_path }}/build"
     mcstas_bin_path: "/usr/local/{{ mcstas_name }}/{{ git_version }}-git/bin"
     mcxtrace_source_path: "{{ source_path }}/mcxtrace"
+    mcxtrace_comps_path: "{{ source_path }}/mcxtrace-comps"
     mcxtrace_build_path: "{{ mcxtrace_source_path }}/build"
     mcxtrace_bin_path: "/usr/local/{{ mcxtrace_name }}/{{ git_version }}-git/bin"
 
@@ -32,6 +34,12 @@
     # Mccodelib (Mcrun and Mxrun dependency)
     mccodelib_name: mccodelib
     mccodelib_source_path: "{{ python_tools_path }}/mccodelib"
+
+    # mcpl & ncrystal submodules
+    mcpl_name: mcpl
+    mcpl_version: 1.3.2
+    mcpl_package: "{{ mcpl_name }}-{{ mcpl_version }}"
+    mcpl_archive: "{{ mcpl_package }}.tar.gz"
 
     ansible_bender:
       buildah_from_extra_args: "--ulimit nofile=65535:65535"
@@ -212,6 +220,22 @@
       insertbefore: BOF
       create: yes
 
+  - name: create example folders
+    file:
+      state: directory
+      path: "{{ item }}"
+    with_items:
+      - "/usr/local/share/{{ mcstas_name }}/examples"
+      - "/usr/local/share/{{ mcxtrace_name }}/examples"
+
+  - name: copy examples
+    command: "cp -r {{ item.src }} {{ item.dst }}"
+    with_items:
+     - { src: "{{ mcstas_comps_path }}/examples",
+         dst: "/usr/local/share/{{ mcstas_name }}/examples" }
+     - { src: "{{ mcxtrace_comps_path }}/examples",
+         dst: "/usr/local/share/{{ mcxtrace_name }}/examples" }
+
   - name: remove source files
     file:
       state: absent
@@ -219,3 +243,4 @@
     with_items:
       - "{{ package_path }}"
       - "{{ source_path }}"
+
