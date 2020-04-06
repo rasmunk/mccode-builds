@@ -34,9 +34,11 @@
     mccodelib_source_path: "{{ python_tools_path }}/mccodelib"
 
     ansible_bender:
+      buildah_from_extra_args: "--ulimit nofile=65535:65535"
       base_image: docker.io/library/centos:7
       target_image:
         name: "mcxtrace_image-{{ package_version }}"
+      layering: false
 
   tasks:
   - name: install prerequisites
@@ -92,7 +94,7 @@
   - name: "install mcstas - {{ mcxtrace_version }}"
     make:
       chdir: "{{ mcstas_build_path }}"
-      target: all
+      target: install
 
   # McXtrace
   - name: "create required {{ mcxtrace_name }} build directory"
@@ -203,9 +205,17 @@
       executable: /usr/bin/pip3
 
   # Install profile path update
-  - name: Setup PATH environment
+  - name: setup PATH environment
     lineinfile:
       path: /etc/profile.d/mccode_path.sh
       line: 'export PATH="{{ mcstas_bin_path }}:{{ mcxtrace_bin_path }}:{{ mcrun_bin_path }}:{{ mxrun_bin_path }}:$PATH"'
       insertbefore: BOF
       create: yes
+
+  - name: remove source files
+    file:
+      state: absent
+      path: "{{ item }}"
+    with_items:
+      - "{{ package_path }}"
+      - "{{ source_path }}"
