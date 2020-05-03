@@ -268,12 +268,15 @@
   - name: trgger the generation of mccode config file
     script: mcrun --write-user-config
 
-  - name: set the mccode CC environment variable
+  - name: set the CC environment variable
     lineinfile:
        path: /etc/profile.d/mccode_cc_env.sh
-       line: 'export MCSTAS_CC_OVERRIDE=gcc'
+       line: "export {{ item.env_var }}={{ item.value }}"
        insertbefore: BOF
        create: yes
+    with_items:
+      - { env_var: "MCSTAS_CC_OVERRIDE", value: 'gcc'}
+      - { env_var: "MCXTRACE_CC_OVERRIDE", value: 'gcc'}
 
   - name: remove source files
     file:
