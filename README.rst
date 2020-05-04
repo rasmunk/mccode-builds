@@ -46,7 +46,7 @@ For instance the ``mcode.yml`` build, is published as the `mcstas-mxtrace <https
 Run an image
 ------------
 
-Anything that is in the containers shell PATH can be executed as a command parameter. For instance if we want to run an mxrun example, it can simply be accomplished by the following command::
+Anything that is in the containers shell ``PATH`` can be executed as a command parameter. For instance if we want to run an ``mxrun`` example, it can simply be accomplished by the following command::
 
     docker run nielsbohr/mcstas-mcxtrace:latest mxrun /usr/local/share/examples/MAXII_711.instr
     
