@@ -33,3 +33,24 @@ By default the temporary build files are being written to the `/tmp` folder, thi
     export TMPDIR=$HOME/my_tmp_folder
 
 This will write the build files to `$HOME/my_tmp_folder` during the build instead of `/tmp`.
+
+------------
+Public Image
+------------
+
+By default, the built images are published at the DockerHub registry at the `nielsbohr <https://hub.docker.com/r/nielsbohr/>`_ profile.
+
+For instance the `mcode.yml` build, is published as the `mcstas-mxtrace <https://hub.docker.com/r/nielsbohr/mcstas-mcxtrace>`_ image.
+
+-----------
+Example Run
+-----------
+
+Anything that is in the containers shell PATH can be executed as a command parameter. For instance if we wan't to run an mxrun example, it can simply be accomplished by the following command::
+
+    docker run nielsbohr/mcstas-mcxtrace:latest mxrun /usr/local/share/examples/MAXII_711.instr
+    
+The `mxrun` command here functions exactly as you would normally expect. For instance we can postfix the instrument arguments to the command::
+
+    docker run nielsbohr/mcstas-mcxtrace:latest mxrun /usr/local/share/mcxtrace/examples/MAXII_711.instr \
+    R=-100 phi_mirror=3 phi_mono=9.25 chi=0 ome=0 phi=0 tth=0
