@@ -2,6 +2,7 @@
 - name: McXtrace image builder
   hosts: all
   vars:
+    tini_version: v0.19.0
     git_version: 2.9999
     mcstas_name: mcstas
     mcxtrace_name: mcxtrace
@@ -11,6 +12,7 @@
     source_base: /tmp
     package_path: "{{ source_base }}/{{ package_archive }}"
     source_path: "{{ source_base }}/{{ package_name }}"
+    third_party_path: "{{ source_path }}/3rdparty"
 
     # Mcstas and Mcxtrace
     mcstas_source_path: "{{ source_path }}/mcstas"
@@ -55,17 +57,29 @@
       base_image: docker.io/library/centos:7
       target_image:
         name: "mcxtrace_image-{{ package_version }}"
+        entrypoint: '["/tini", "-g", "--"]'
+        cmd: "/start.sh"
+        environment:
+          PATH: "{{ mcstas_bin_path }}:{{ mcxtrace_bin_path }}:{{ mcrun_bin_path }}:{{ mxrun_bin_path }}:$PATH"
+          MCSTAS_CC_OVERRIDE: gcc
+          MCXTRACE_CC_OVERRIDE: gcc
       layering: false
 
   tasks:
+  - name: install epel
+    yum:
+      state: present
+      name:
+        - epel-release
+
   - name: install prerequisites
     yum:
       state: present
       name:
         - vim
-        - epel-release
         - gcc
-        - cmake
+        - gcc-c++
+        - cmake3
         - make
         - bison
         - flex
@@ -74,6 +88,27 @@
         - python3
         - python3-setuptools
         - gcc-gfortran
+
+  - name: link cmake3 to cmake
+    file:
+      state: link
+      src: /usr/bin/cmake3
+      path: /usr/bin/cmake
+      mode: '755'
+
+  - name: get tini
+    get_url:
+      url: "{{ item.url }}"
+      dest: "{{ item.dest }}"
+      mode: '755'
+    with_items:
+      - { url: "https://github.com/krallin/tini/releases/download/{{ tini_version }}/tini", dest: "/tini" }
+
+  - name: make tini executable
+    file:
+      state: file
+      mode: '755'
+      path: "/tini"
 
   # Get the code
   - name: checkout github releases
@@ -106,7 +141,7 @@
       - { src: "{{ ncrystal_path }}", dest: "{{ ncrystal_source_path }}" }
 
   - name: move submodules into mcstas
-    command: "mv {{ item.src }} {{ source_path }}/3rdparty/{{ item.name }}"
+    command: "mv {{ item.src }} {{ third_party_path }}/"
     with_items:
       - { src: "{{ mcpl_source_path }}", name: "{{ mcpl_name }}" }
       - { src: "{{ ncrystal_source_path }}", name: "{{ ncrystal_name }}" }
@@ -153,6 +188,56 @@
     make:
       chdir: "{{ mcxtrace_build_path }}"
       target: install
+
+  # Build and install mcpl and ncrystal
+  - name: "generate {{ mcpl_name }} and {{ ncrystal_name }}"
+    command:
+      cmd: "/usr/bin/cmake -DCMAKE_BUILD_TYPE=Release . {{ item.cmake_args }}"
+      chdir: "{{ item.src }}"
+    with_items:
+      - { src: "{{ third_party_path }}/{{ mcpl_name }}", cmake_args: "-DBUILD_WITHG4=OFF" }
+      - { src: "{{ third_party_path }}/{{ ncrystal_name }}", cmake_args: "-DBUILD_G4HOOKS=OFF" }
+
+  - name: "build {{ mcpl_name }} and {{ ncrystal_name }}"
+    make:
+      chdir: "{{ item.src }}"
+      target: all
+    with_items:
+      - { src: "{{ third_party_path }}/{{ mcpl_name }}" }
+      - { src: "{{ third_party_path }}/{{ ncrystal_name }}" }
+
+  - name: "install {{ mcpl_name }} and {{ ncrystal_name }}"
+    make:
+      chdir: "{{ item.src }}"
+      target: install
+    with_items:
+    - { src: "{{ third_party_path }}/{{ mcpl_name }}" }
+    - { src: "{{ third_party_path }}/{{ ncrystal_name }}" }
+
+  # Build and install mcstas-comps and mcxtrace-comps
+  - name: "generate {{ mcstas_comps_path }} and {{ mcxtrace_comps_path }}"
+    command:
+      cmd: "/usr/bin/cmake -DCMAKE_BUILD_TYPE=Release ."
+      chdir: "{{ item.src }}"
+    with_items:
+      - { src: "{{ mcstas_comps_path }}" }
+      - { src: "{{ mcxtrace_comps_path }}" }
+
+  - name: "build {{ mcstas_comps_path }} and {{ mcxtrace_comps_path }}"
+    make:
+      chdir: "{{ item.src }}"
+      target: all
+    with_items:
+      - { src: "{{ mcstas_comps_path }}" }
+      - { src: "{{ mcxtrace_comps_path }}" }
+
+  - name: "install {{ mcstas_comps_path }} and {{ mcxtrace_comps_path }}"
+    make:
+      chdir: "{{ item.src }}"
+      target: install
+    with_items:
+    - { src: "{{ mcstas_comps_path }}" }
+    - { src: "{{ mcxtrace_comps_path }}" }
 
   # Install mcrun python utils
   - name: "create required directory for {{ mcrun_name }}"
@@ -264,10 +349,6 @@
      - { src: "{{ mcxtrace_comps_path }}/examples",
          dst: "/usr/local/share/{{ mcxtrace_name }}/" }
 
-
-  - name: trgger the generation of mccode config file
-    script: mcrun --write-user-config
-
   - name: set the CC environment variable
     lineinfile:
        path: /etc/profile.d/mccode_cc_env.sh
@@ -286,3 +367,15 @@
       - "{{ package_path }}"
       - "{{ source_path }}"
 
+  # Make entrypoint cmd script
+  - name: make start.sh
+    blockinfile:
+      create: yes
+      path: /start.sh
+      mode: '755'
+      marker: "# {mark} ANSIBLE MANAGED BLOCK "
+      insertafter: ""
+      block:
+        #!/bin/bash
+        set -e
+        exec "$@"
