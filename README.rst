@@ -15,7 +15,7 @@ can be scheduled with `Docker <https://www.docker.com/>`_ or `podman <https://gi
 ---------------
 Getting Started
 ---------------
-To begin with, ensure that you have `ansible-bender` properly installed so that it can be executed from the shell.
+To begin with, ensure that you have ``ansible-bender`` properly installed so that it can be executed from the shell.
 Afterwards it is simply a matter of cloning the source::
 
     git clone https://github.com/rasmunk/mccode-builds
@@ -28,11 +28,11 @@ To build the general mccode image::
 
     ansible-bender build plays/containers/builds/mccode/mccode.yml
 
-By default the temporary build files are being written to the ``/tmp`` folder, this can be changed by defining the `TMPDIR` environment variable::
+By default the temporary build files are being written to the ``/tmp`` folder, this can be changed by defining the ``TMPDIR`` environment variable::
 
     export TMPDIR=$HOME/my_tmp_folder
 
-This will write the build files to ``$HOME/my_tmp_folder`` during the build instead of `/tmp`.
+This will write the build files to ``$HOME/my_tmp_folder`` during the build instead of ``/tmp``.
 
 ------------
 Public Image
