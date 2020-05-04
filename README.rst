@@ -20,9 +20,9 @@ Afterwards it is simply a matter of cloning the source::
 
     git clone https://github.com/rasmunk/mccode-builds
 
--------------
-Example build
--------------
+------------
+How to build
+------------
 
 To build the general mccode image::
 
@@ -34,17 +34,17 @@ By default the temporary build files are being written to the ``/tmp`` folder, t
 
 This will write the build files to ``$HOME/my_tmp_folder`` during the build instead of ``/tmp``.
 
-------------
-Public Image
-------------
+-------------
+Public images
+-------------
 
 By default, the built images are published at the DockerHub registry at the `nielsbohr <https://hub.docker.com/r/nielsbohr/>`_ profile.
 
 For instance the ``mcode.yml`` build, is published as the `mcstas-mxtrace <https://hub.docker.com/r/nielsbohr/mcstas-mcxtrace>`_ image.
 
------------
-Example Run
------------
+------------
+Run an image
+------------
 
 Anything that is in the containers shell PATH can be executed as a command parameter. For instance if we want to run an mxrun example, it can simply be accomplished by the following command::
 
