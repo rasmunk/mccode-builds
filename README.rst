@@ -48,7 +48,7 @@ Run an image
 
 Anything that is in the containers shell ``PATH`` can be executed as a command parameter. For instance if we want to run an ``mxrun`` example, it can simply be accomplished by the following command::
 
-    docker run nielsbohr/mcstas-mcxtrace:latest mxrun /usr/local/share/examples/MAXII_711.instr
+    docker run nielsbohr/mcstas-mcxtrace:latest mxrun /usr/local/share/mcxtrace/examples/MAXII_711.instr
     
 The ``mxrun`` command here functions exactly as you would normally expect. For instance we can postfix the instrument arguments to the command::
 
