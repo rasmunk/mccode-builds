@@ -1,0 +1,13 @@
+---
+- name: McXtrace-runner builder
+  hosts: all
+  vars:
+    package_version: 1.5
+
+    ansible_bender:
+      base_image: "docker.io/nielsbohr/mcstas-mcxtrace:{{ package_version }}"
+      target_image:
+        name: "mcstas-mcxtrace:{{ package_version }}"
+        entrypoint: '["/tini", "-g", "--"]'
+        cmd: "job_io"
+      layering: false
