@@ -2,12 +2,39 @@
 - name: Mccode-job-runner builder
   hosts: all
   vars:
+
+    ansible_python_interpreter: /usr/bin/python
     package_version: 1.5
+
+    job_io:
+      name: job_io
+      dest: /tmp/job_io
+      repo: https://github.com/rasmunk/job_io.git
 
     ansible_bender:
       base_image: "docker.io/nielsbohr/mcstas-mcxtrace:{{ package_version }}"
       target_image:
-        name: "mccode-job-runner:{{ package_version }}"
+        name: "docker.io/nielsbohr/mccode-job-runner:{{ package_version }}"
         entrypoint: '["/tini", "-g", "--"]'
         cmd: "job_io"
       layering: false
+
+  tasks:
+  - name: install packages
+    yum:
+      state: present
+      name:
+        - git
+
+  - name: clone job_io
+    git:
+      repo: "{{ item.repo }}"
+      dest: "{{ item.dest }}"
+      clone: yes
+    with_items:
+      - { repo: "{{ job_io.repo }}", dest: "{{ job_io.dest }}" }
+
+  - name: install job_io
+    shell:
+      cmd: "/usr/bin/python3 setup.py install"
+      chdir: "{{ job_io.dest }}"
