@@ -4,7 +4,7 @@
   vars:
 
     ansible_python_interpreter: /usr/bin/python
-    package_version: 1.5
+    package_version: latest
 
     job_io:
       name: job_io
