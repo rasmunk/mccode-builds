@@ -2,6 +2,9 @@
 - name: McXtrace image builder
   hosts: all
   vars:
+    # General packages
+    python_version: 3.7.7
+  
     tini_version: v0.19.0
     git_version: 2.9999
     mcstas_name: mcstas
@@ -56,7 +59,7 @@
       buildah_from_extra_args: "--ulimit nofile=65535:65535"
       base_image: docker.io/library/centos:7
       target_image:
-        name: "docker.io/nielsbohr/mcstas-mcxtrace:latest"
+        name: "docker.io/nielsbohr/mcstas-mcxtrace:1.5"
         entrypoint: '["/tini", "-g", "--"]'
         cmd: "/start.sh"
         environment:
@@ -85,9 +88,53 @@
         - flex
         - libnotify
         - python-setuptools
-        - python3
-        - python3-setuptools
         - gcc-gfortran
+        - openssl-devel
+        - bzip2-devel
+        - libffi-devel
+
+  # install python3.7
+  - name: "install python {{ python_version }}"
+    get_url:
+      url: "{{ item.url }}"
+      dest: "{{ item.dest }}"
+      mode: '755'
+    with_items:
+      - { url: "https://www.python.org/ftp/python/{{ python_version }}/Python-{{ python_version }}.tar.xz", dest: "/tmp/python.tar.xz"}
+
+  - name: "create target dir"
+    file:
+      state: directory
+      mode: '755'
+      path: /tmp/python
+
+  - name: "unpack python {{ python_version }}"
+    unarchive:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      remote_src: yes
+      extra_opts: [--strip-components=1]
+    with_items:
+      - { src: "/tmp/python.tar.xz", dest: "/tmp/python/" }
+
+  - name: "configure python {{ python_version }}"
+    command:
+      cmd: ./configure --enable-optimizations
+      chdir: /tmp/python
+
+  - name: "install python {{ python_version }}"
+    make:
+      chdir: /tmp/python
+      target: altinstall
+
+  - name: "setup links"
+    file:
+      state: link
+      path: "{{ item.path }}"
+      src: "{{ item.src }}"
+    with_items:
+      - { path: "/usr/local/bin/python3" , src: "/usr/local/bin/python3.7" }
+      - { path: "/usr/local/bin/pip3" , src: "/usr/local/bin/pip3.7" }
 
   - name: link cmake3 to cmake
     file:
@@ -323,7 +370,7 @@
     pip:
       name:
         - PyYaml
-      executable: /usr/bin/pip3
+      executable: /usr/local/bin/pip3
 
   # Install profile path update
   - name: setup PATH environment

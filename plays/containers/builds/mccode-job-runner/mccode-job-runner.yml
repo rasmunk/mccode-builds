@@ -25,6 +25,7 @@
       state: present
       name:
         - git
+        - bind-utils
 
   - name: clone job_io
     git:
@@ -36,5 +37,5 @@
 
   - name: install job_io
     shell:
-      cmd: "/usr/bin/python3 setup.py install"
+      cmd: "/usr/local/bin/python3 setup.py install"
       chdir: "{{ job_io.dest }}"
