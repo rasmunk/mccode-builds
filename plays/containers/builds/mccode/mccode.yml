@@ -55,6 +55,16 @@
     ncrystal_path: "{{ source_base }}/{{ ncrystal_archive }}"
     ncrystal_source_path: "{{ source_base }}/{{ ncrystal_name }}"
 
+    # OpenMPI
+    openmpi_name: openmpi
+    openmpi_major_version: 4.0
+    openmpi_minor_version: 5
+    openmpi_version: "{{ openmpi_major_version }}.{{ openmpi_minor_version }}"
+    openmpi_package: "https://download.open-mpi.org/release/open-mpi/v{{ openmpi_major_version }}/{{ openmpi_name }}-{{ openmpi_version }}.tar.gz"
+    openmpi_archive: "{{ openmpi_name }}-{{ openmpi_version }}.tar.gz"
+    openmpi_archive_path: "{{ source_base }}/{{ openmpi_archive }}"
+    openmpi_source_path: "{{ source_base }}/{{ openmpi_name }}-{{ openmpi_version }}"
+
     ansible_bender:
       buildah_from_extra_args: "--ulimit nofile=65535:65535"
       base_image: docker.io/library/centos:7
@@ -166,6 +176,7 @@
       - { url: "https://github.com/McStasMcXtrace/McCode/archive/{{ package_archive }}", dest: "{{ package_path }}" }
       - { url: "https://github.com/mctools/mcpl/archive/{{ mcpl_archive }}", dest: "{{ mcpl_path }}" }
       - { url: "https://github.com/mctools/ncrystal/archive/{{ ncrystal_archive }}", dest: "{{ ncrystal_path }}" }
+      - { url: "{{ openmpi_package }}", dest: "{{ openmpi_archive_path }}"}
 
   - name: create required unpack directory
     file:
@@ -175,6 +186,7 @@
       - "{{ source_path }}"
       - "{{ mcpl_source_path }}"
       - "{{ ncrystal_source_path }}"
+      - "{{ openmpi_source_path }}"
 
   - name: unpack packages
     unarchive:
@@ -186,12 +198,24 @@
       - { src: "{{ package_path }}", dest: "{{ source_path }}" }
       - { src: "{{ mcpl_path }}", dest: "{{ mcpl_source_path }}" }
       - { src: "{{ ncrystal_path }}", dest: "{{ ncrystal_source_path }}" }
+      - { src: "{{ openmpi_archive_path }}", dest: "{{ openmpi_source_path }}"}
 
   - name: move submodules into mcstas
     command: "mv {{ item.src }} {{ third_party_path }}/"
     with_items:
       - { src: "{{ mcpl_source_path }}", name: "{{ mcpl_name }}" }
       - { src: "{{ ncrystal_source_path }}", name: "{{ ncrystal_name }}" }
+
+  # Openmpi
+  - name: "configure openmpi {{ openmpi_version }}"
+    command:
+      cmd: ./configure
+      chdir: "{{ openmpi_source_path }}"
+
+  - name: "install openmpi {{ openmpi_version }}"
+    make:
+      chdir: "{{ openmpi_source_path }}"
+      target: install
 
   # McStas
   - name: "create required {{ mcstas_name }} build directory"
@@ -336,7 +360,7 @@
 
   - name: "generate {{ mccodelib_name }} make files via cmake"
     command:
-      cmd: "/usr/bin/cmake -DCMAKE_BUILD_TYPE=Release -Denable_{{ mcstas_name }}=1 {{ mccodelib_source_path }}"
+      cmd: "/usr/bin/cmake -DCMAKE_BUILD_TYPE=Release -Denable_{{ mcstas_name }}=1 -DMPICC=mpicc -DMPIRUN=mpirun -DCC=gcc {{ mccodelib_source_path }}"
       chdir: "{{ mccodelib_source_path }}"
 
   - name: "build - {{ mccodelib_name }}"
@@ -352,7 +376,7 @@
   # Install mccodelib (mcxtrace)
   - name: "generate {{ mccodelib_name }} make files via cmake"
     command:
-      cmd: "/usr/bin/cmake -DCMAKE_BUILD_TYPE=Release -Denable_{{ mcxtrace_name }}=1 {{ mccodelib_source_path }}"
+      cmd: "/usr/bin/cmake -DCMAKE_BUILD_TYPE=Release -Denable_{{ mcxtrace_name }}=1 -DMPICC=mpicc -DMPIRUN=mpirun -DCC=gcc {{ mccodelib_source_path }}"
       chdir: "{{ mccodelib_source_path }}"
 
   - name: "build - {{ mccodelib_name }}"
@@ -413,6 +437,12 @@
     with_items:
       - "{{ package_path }}"
       - "{{ source_path }}"
+      - "{{ mcpl_path }}"
+      - "{{ mcpl_source_path }}"
+      - "{{ ncrystal_path }}"
+      - "{{ ncrystal_source_path }}"
+      - "{{ openmpi_archive_path }}"
+      - "{{ openmpi_source_path }}"
 
   # Make entrypoint cmd script
   - name: make start.sh
