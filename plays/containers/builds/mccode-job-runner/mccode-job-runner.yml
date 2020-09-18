@@ -2,40 +2,32 @@
 - name: Mccode-job-runner builder
   hosts: all
   vars:
-
-    ansible_python_interpreter: /usr/bin/python
+     # User
+    user: centos
     package_version: latest
 
     jobio:
       name: jobio
-      dest: /tmp/jobio
-      repo: https://github.com/rasmunk/jobio.git
+      version: 0.0.0a9
 
     ansible_bender:
       base_image: "docker.io/nielsbohr/mcstas-mcxtrace:{{ package_version }}"
+      working_container:
+        user: root
       target_image:
         name: "docker.io/nielsbohr/mccode-job-runner:{{ package_version }}"
         entrypoint: '["/tini", "-g", "--"]'
         cmd: "jobio"
+        user: "{{ user }}"
+        working_dir: "/home/{{ user }}"
+        environment:
+          PATH: "/home/{{user }}/.local/bin:$PATH"
       layering: false
-
+      
   tasks:
-  - name: install packages
-    yum:
-      state: present
-      name:
-        - git
-        - bind-utils
-
-  - name: clone jobio
-    git:
-      repo: "{{ item.repo }}"
-      dest: "{{ item.dest }}"
-      clone: yes
-    with_items:
-      - { repo: "{{ jobio.repo }}", dest: "{{ jobio.dest }}" }
-
   - name: install jobio
-    shell:
-      cmd: "/usr/local/bin/python3 setup.py install"
-      chdir: "{{ jobio.dest }}"
+    pip:
+      executable: /usr/local/bin/pip3
+      name:
+        - "{{ jobio.name }}=={{ jobio.version }}"
+      state: present

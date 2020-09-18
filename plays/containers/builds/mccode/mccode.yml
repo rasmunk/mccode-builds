@@ -2,6 +2,9 @@
 - name: McXtrace image builder
   hosts: all
   vars:
+    # User
+    user: centos
+
     # General packages
     python_version: 3.7.7
   
@@ -72,6 +75,8 @@
         name: "docker.io/nielsbohr/mcstas-mcxtrace:latest"
         entrypoint: '["/tini", "-g", "--"]'
         cmd: "/start.sh"
+        user: "{{ user }}"
+        working_dir: "/home/{{ user }}"
         environment:
           PATH: "{{ mcstas_bin_path }}:{{ mcxtrace_bin_path }}:{{ mcrun_bin_path }}:{{ mxrun_bin_path }}:$PATH"
           MCSTAS_CC_OVERRIDE: gcc
@@ -102,6 +107,13 @@
         - openssl-devel
         - bzip2-devel
         - libffi-devel
+
+  # Add user
+  - name:
+    user:
+      name: "{{ user }}"
+      shell: /bin/bash
+      state: present
 
   # install python3.7
   - name: "install python {{ python_version }}"
@@ -216,6 +228,29 @@
     make:
       chdir: "{{ openmpi_source_path }}"
       target: install
+
+  # Setup the MCA parameter
+  - name: "create the mca parameter file"
+    file:
+      state: "{{ item.state }}"
+      path: "{{ item.path }}"
+
+    become: yes
+    become_method: su
+    become_user: "{{ user }}"
+    with_items:
+      - { state: directory, path: "$HOME/.openmpi" }
+      - { state: touch, path: "$HOME/.openmpi/mca-params.conf"}
+
+  - name: "disable opempi plm_rsh_agent to ensure the mpi process is run locally"
+    lineinfile:
+      path: "$HOME/.openmpi/mca-params.conf"
+      line: "plm_rsh_agent ="
+      insertbefore: BOF
+      create: yes
+    become: yes
+    become_method: su
+    become_user: "{{ user }}"
 
   # McStas
   - name: "create required {{ mcstas_name }} build directory"
@@ -443,6 +478,7 @@
       - "{{ ncrystal_source_path }}"
       - "{{ openmpi_archive_path }}"
       - "{{ openmpi_source_path }}"
+      - "/tmp/python*"
 
   # Make entrypoint cmd script
   - name: make start.sh
