@@ -31,3 +31,15 @@
       name:
         - "{{ jobio.name }}=={{ jobio.version }}"
       state: present
+
+  - name: ensure /tmp is owned by centos
+    file:
+      state: "{{ item.state }}"
+      path: "{{ item.path }}"
+      mode: '777'
+      owner: "{{ user }}"
+      group: "{{ user }}"
+      recurse: yes
+    with_items:
+      - { state: directory, path: "/tmp" }
+      - { state: directory, path: "/tmp/input"}

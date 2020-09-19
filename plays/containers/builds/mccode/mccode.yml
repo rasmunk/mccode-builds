@@ -109,11 +109,23 @@
         - libffi-devel
 
   # Add user
-  - name:
+  - name: "add user: {{ user }}"
     user:
       name: "{{ user }}"
       shell: /bin/bash
+      groups:
+        - users
+      append: yes
       state: present
+
+  - name: set home directory permissions
+    file:
+      state: directory
+      mode: '755'
+      path: "/home/{{ user }}"
+      owner: "{{ user }}"
+      group: "{{ user }}"
+      recurse: yes
 
   # install python3.7
   - name: "install python {{ python_version }}"
@@ -234,13 +246,12 @@
     file:
       state: "{{ item.state }}"
       path: "{{ item.path }}"
-
+    with_items:
+      - { state: directory, path: "/home/{{ user }}/.openmpi" }
+      - { state: touch, path: "/home/{{ user }}/.openmpi/mca-params.conf"}
     become: yes
     become_method: su
     become_user: "{{ user }}"
-    with_items:
-      - { state: directory, path: "$HOME/.openmpi" }
-      - { state: touch, path: "$HOME/.openmpi/mca-params.conf"}
 
   - name: "disable opempi plm_rsh_agent to ensure the mpi process is run locally"
     lineinfile:
